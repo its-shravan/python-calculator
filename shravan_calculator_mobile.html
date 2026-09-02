@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Shravan Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14201C;
+    --body-panel:#1C2B26;
+    --paper:#F1F7F0;
+    --screen:#C9F2D9;
+    --screen-dim:#9FD9B8;
+    --digit:#123A30;
+    --accent:#FF5D3B;
+    --accent2:#2E86AB;
+    --muted:#6B7C74;
+    --line: rgba(20,32,28,0.12);
+    font-family:'Work Sans', sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:radial-gradient(ellipse at top, #24352E 0%, #0F1815 65%, #0A100E 100%);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 16px;
+    color:var(--paper);
+    overflow-x:hidden;
+  }
+
+  .device{
+    width:100%;
+    max-width:420px;
+    background:linear-gradient(160deg, var(--body-panel), #142019);
+    border-radius:28px;
+    padding:22px;
+    box-shadow:
+      0 30px 60px -20px rgba(0,0,0,0.7),
+      0 0 0 1px rgba(255,255,255,0.04) inset,
+      0 2px 0 rgba(255,255,255,0.05) inset;
+    position:relative;
+  }
+
+  .brand{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:2px 6px 16px;
+  }
+  .brand-name{
+    font-family:'Space Mono', monospace;
+    letter-spacing:2px;
+    font-size:12px;
+    color:var(--screen-dim);
+    text-transform:uppercase;
+  }
+  .brand-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 8px var(--accent);
+  }
+
+  /* LCD SCREEN */
+  .lcd{
+    background:linear-gradient(180deg, #B7EBCB, var(--screen));
+    border-radius:14px;
+    padding:22px 20px;
+    min-height:132px;
+    box-shadow:
+      inset 0 3px 10px rgba(0,0,0,0.25),
+      inset 0 0 0 2px rgba(0,0,0,0.08);
+    font-family:'Space Mono', monospace;
+    color:var(--digit);
+    position:relative;
+    overflow:hidden;
+  }
+  .lcd::before{
+    content:"";
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(
+      180deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px,
+      transparent 1px, transparent 3px
+    );
+    pointer-events:none;
+  }
+  .lcd-label{
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--digit);
+    opacity:0.55;
+    margin-bottom:8px;
+  }
+  .lcd-line{
+    font-size:16px;
+    line-height:1.5;
+    min-height:24px;
+  }
+  .cursor{
+    display:inline-block;
+    width:9px; height:16px;
+    background:var(--digit);
+    margin-left:2px;
+    vertical-align:-2px;
+    animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* PANELS */
+  .panel{ display:none; padding-top:18px; }
+  .panel.active{ display:block; animation:riseIn .45s ease both; }
+  @keyframes riseIn{
+    from{ opacity:0; transform:translateY(10px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .field{ margin-bottom:14px; }
+  .field label{
+    display:block;
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+    font-family:'Space Mono', monospace;
+  }
+  .field input{
+    width:100%;
+    padding:13px 14px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:#0F1815;
+    color:var(--paper);
+    font-family:'Space Mono', monospace;
+    font-size:15px;
+    outline:none;
+    transition: box-shadow .2s ease, border-color .2s ease;
+  }
+  .field input:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(255,93,59,0.18);
+  }
+  .field .err{
+    font-size:11px;
+    color:var(--accent);
+    margin-top:6px;
+    display:none;
+    font-family:'Space Mono', monospace;
+  }
+
+  .key{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(180deg, var(--accent), #E24B2B);
+    color:#fff;
+    font-family:'Space Mono', monospace;
+    font-size:13px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 4px 0 #B23B22, 0 6px 14px rgba(0,0,0,0.35);
+    transition: transform .08s ease, box-shadow .08s ease;
+  }
+  .key:active{
+    transform:translateY(4px);
+    box-shadow:0 0 0 #B23B22, 0 2px 6px rgba(0,0,0,0.35);
+  }
+  .key.secondary{
+    background:linear-gradient(180deg, var(--accent2), #23698A);
+    box-shadow:0 4px 0 #17506B, 0 6px 14px rgba(0,0,0,0.35);
+  }
+  .key.secondary:active{ box-shadow:0 0 0 #17506B, 0 2px 6px rgba(0,0,0,0.35); }
+  .key-row{ display:flex; gap:10px; margin-top:6px; }
+  .key-row .key{ flex:1; }
+
+  /* RECEIPT */
+  .receipt-wrap{
+    margin-top:16px;
+    position:relative;
+    max-height:0;
+    overflow:hidden;
+    transition:max-height .6s ease;
+  }
+  .receipt-wrap.open{ max-height:600px; }
+  .receipt{
+    background:var(--paper);
+    color:var(--digit);
+    font-family:'Space Mono', monospace;
+    font-size:13px;
+    padding:16px 16px 22px;
+    border-radius:2px;
+    box-shadow:0 10px 24px rgba(0,0,0,0.35);
+    position:relative;
+    clip-path: polygon(
+      0% 0%, 100% 0%, 100% 96%,
+      95% 100%, 90% 96%, 85% 100%, 80% 96%, 75% 100%, 70% 96%, 65% 100%,
+      60% 96%, 55% 100%, 50% 96%, 45% 100%, 40% 96%, 35% 100%, 30% 96%,
+      25% 100%, 20% 96%, 15% 100%, 10% 96%, 5% 100%, 0% 96%
+    );
+  }
+  .receipt-title{
+    text-align:center;
+    letter-spacing:2px;
+    font-weight:700;
+    font-size:12px;
+    border-bottom:1px dashed var(--muted);
+    padding-bottom:10px;
+    margin-bottom:10px;
+  }
+  .receipt-row{
+    display:flex;
+    justify-content:space-between;
+    padding:4px 0;
+    opacity:0;
+    transform:translateY(6px);
+    animation:printLine .35s ease forwards;
+  }
+  .receipt-row .val{ font-weight:700; }
+  .receipt-row.warn .val{ color:var(--accent); }
+  @keyframes printLine{ to{ opacity:1; transform:translateY(0); } }
+
+  .helper{
+    font-size:11px;
+    color:var(--screen-dim);
+    text-align:center;
+    margin-top:14px;
+    font-family:'Space Mono', monospace;
+    letter-spacing:0.5px;
+  }
+
+  .feedback-choices{ display:flex; gap:10px; margin-top:4px; }
+  .chip{
+    flex:1;
+    padding:12px;
+    text-align:center;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.12);
+    background:#0F1815;
+    color:var(--paper);
+    font-family:'Space Mono', monospace;
+    font-size:13px;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .chip:hover{ border-color:var(--accent); }
+  .chip.selected{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+
+  .restart-link{
+    display:block;
+    text-align:center;
+    margin-top:16px;
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--muted);
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;
+    border:none;
+    width:100%;
+  }
+  .restart-link:hover{ color:var(--screen-dim); }
+
+
+  /* MOBILE OPTIMIZATION */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100svh;
+    padding: max(14px, env(safe-area-inset-top))
+             max(12px, env(safe-area-inset-right))
+             max(14px, env(safe-area-inset-bottom))
+             max(12px, env(safe-area-inset-left));
+    align-items: center;
+  }
+
+  .device {
+    width: min(100%, 420px);
+    padding: clamp(16px, 4.5vw, 22px);
+    border-radius: clamp(20px, 6vw, 28px);
+  }
+
+  .lcd {
+    min-height: 118px;
+    padding: 18px 16px;
+  }
+
+  .lcd-line {
+    font-size: clamp(14px, 4vw, 16px);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .field input,
+  .key,
+  .chip {
+    min-height: 50px;
+    font-size: 16px; /* prevents iOS Safari zoom on focus */
+  }
+
+  .key {
+    touch-action: manipulation;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  .receipt {
+    font-size: clamp(12px, 3.4vw, 13px);
+    padding-left: 13px;
+    padding-right: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .receipt-row {
+    gap: 12px;
+  }
+
+  .receipt-row .val {
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .helper {
+    line-height: 1.5;
+  }
+
+  @media (max-width: 380px) {
+    body {
+      padding: 10px;
+    }
+
+    .device {
+      padding: 14px;
+      border-radius: 20px;
+    }
+
+    .brand {
+      padding-bottom: 12px;
+    }
+
+    .lcd {
+      min-height: 105px;
+      padding: 15px 13px;
+    }
+
+    .key-row,
+    .feedback-choices {
+      gap: 8px;
+    }
+
+    .key {
+      padding: 12px 9px;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .device {
+      padding: 11px;
+    }
+
+    .lcd {
+      padding: 13px 11px;
+    }
+
+    .key-row {
+      flex-direction: column;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001s !important; transition-duration:0.001s !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="brand">
+    <span class="brand-name">Shravan Calculator</span>
+    <span class="brand-dot"></span>
+  </div>
+
+  <div class="lcd">
+    <div class="lcd-label" id="lcdLabel">status</div>
+    <div class="lcd-line" id="lcdLine">booting up<span class="cursor"></span></div>
+  </div>
+
+  <!-- STEP 1: NAME -->
+  <div class="panel active" id="panel-name">
+    <div class="field">
+      <label for="nameInput">Enter your name</label>
+      <input id="nameInput" type="text" placeholder="e.g. Shravan" autocomplete="off" autocapitalize="words" enterkeyhint="next">
+    </div>
+    <button class="key" onclick="submitName()">Welcome me →</button>
+  </div>
+
+  <!-- STEP 2: NUMBERS -->
+  <div class="panel" id="panel-numbers">
+    <div class="field">
+      <label for="numA">First number</label>
+      <input id="numA" type="text" inputmode="decimal" placeholder="e.g. 12" enterkeyhint="next">
+      <div class="err" id="errA">please enter a valid number</div>
+    </div>
+    <div class="field">
+      <label for="numB">Second number</label>
+      <input id="numB" type="text" inputmode="decimal" placeholder="e.g. 4" enterkeyhint="done">
+      <div class="err" id="errB">please enter a valid number</div>
+    </div>
+    <button class="key" onclick="calculate()">Calculate =</button>
+  </div>
+
+  <!-- STEP 3: RESULTS -->
+  <div class="panel" id="panel-results">
+    <div class="receipt-wrap" id="receiptWrap">
+      <div class="receipt" id="receipt"></div>
+    </div>
+    <div class="key-row" style="margin-top:16px;">
+      <button class="key secondary" onclick="goToFeedback()">Give feedback →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: FEEDBACK -->
+  <div class="panel" id="panel-feedback">
+    <div class="field">
+      <label>So, how's my calculator? Is it good or bad?</label>
+      <div class="feedback-choices">
+        <div class="chip" id="chipGood" onclick="pickFeedback('good')">Good</div>
+        <div class="chip" id="chipBad" onclick="pickFeedback('bad')">Bad</div>
+      </div>
+    </div>
+    <button class="key" onclick="submitFeedback()">Send feedback</button>
+  </div>
+
+  <!-- STEP 5: THANK YOU -->
+  <div class="panel" id="panel-thanks">
+    <button class="restart-link" onclick="restart()" style="margin-top:0;">↺ start over</button>
+  </div>
+
+  <div class="helper" id="helperText">press enter to continue</div>
+</div>
+
+<script>
+let state = { name:"", a:0, b:0, feedback:null };
+
+function typeLCD(text, label){
+  const line = document.getElementById('lcdLine');
+  const lbl = document.getElementById('lcdLabel');
+  lbl.textContent = label || 'status';
+  line.innerHTML = '';
+  let i = 0;
+  const speed = 22;
+  function step(){
+    if(i <= text.length){
+      line.innerHTML = text.slice(0,i) + '<span class="cursor"></span>';
+      i++;
+      setTimeout(step, speed);
+    }
+  }
+  step();
+}
+
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function setHelper(text){
+  document.getElementById('helperText').textContent = text;
+}
+
+// STEP 1
+typeLCD('===== shravan calculator =====', 'status');
+setTimeout(() => typeLCD('enter your name to begin', 'prompt'), 1200);
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') submitName();
+});
+
+function submitName(){
+  const val = document.getElementById('nameInput').value.trim();
+  if(!val){
+    typeLCD('name cannot be empty!', 'error');
+    return;
+  }
+  state.name = val;
+  typeLCD('welcome, ' + val + '!', 'greeting');
+  setTimeout(() => {
+    typeLCD('now you are using calculator', 'status');
+    showPanel('panel-numbers');
+    setHelper('enter two numbers');
+    document.getElementById('numA').focus();
+  }, 900);
+}
+
+// STEP 2
+[('numA'),('numB')].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if(e.key === 'Enter') calculate();
+  });
+});
+
+function calculate(){
+  const aRaw = document.getElementById('numA').value.trim();
+  const bRaw = document.getElementById('numB').value.trim();
+  const errA = document.getElementById('errA');
+  const errB = document.getElementById('errB');
+  errA.style.display = 'none';
+  errB.style.display = 'none';
+
+  const a = Number(aRaw);
+  const b = Number(bRaw);
+  let bad = false;
+  if(aRaw === '' || isNaN(a)){ errA.style.display = 'block'; bad = true; }
+  if(bRaw === '' || isNaN(b)){ errB.style.display = 'block'; bad = true; }
+  if(bad){
+    typeLCD('check your numbers', 'error');
+    return;
+  }
+
+  state.a = a; state.b = b;
+  typeLCD('calculating...', 'status');
+  buildReceipt(a, b);
+  showPanel('panel-results');
+  setHelper('results printed below');
+}
+
+function buildReceipt(a, b){
+  const receipt = document.getElementById('receipt');
+  const wrap = document.getElementById('receiptWrap');
+  wrap.classList.remove('open');
+  receipt.innerHTML = '';
+
+  const rows = [
+    { label: 'Addition',       value: (a + b) },
+    { label: 'Subtraction',    value: (a - b) },
+    { label: 'Multiplication', value: (a * b) },
+    { label: 'Division',       value: b === 0 ? null : (a / b) },
+  ];
+
+  const title = document.createElement('div');
+  title.className = 'receipt-title';
+  title.textContent = state.name.toUpperCase() + "'S RESULTS";
+  receipt.appendChild(title);
+
+  const inputLine = document.createElement('div');
+  inputLine.className = 'receipt-row';
+  inputLine.style.animationDelay = '0s';
+  inputLine.innerHTML = '<span>a = ' + a + ', b = ' + b + '</span><span></span>';
+  receipt.appendChild(inputLine);
+
+  rows.forEach((r, idx) => {
+    const row = document.createElement('div');
+    row.className = 'receipt-row' + (r.value === null ? ' warn' : '');
+    row.style.animationDelay = (0.25 + idx * 0.18) + 's';
+    const valText = r.value === null ? 'undefined (÷0)' : formatNum(r.value);
+    row.innerHTML = '<span>' + r.label + '</span><span class="val">' + valText + '</span>';
+    receipt.appendChild(row);
+  });
+
+  requestAnimationFrame(() => wrap.classList.add('open'));
+}
+
+function formatNum(n){
+  const rounded = Math.round(n * 10000) / 10000;
+  return rounded.toString();
+}
+
+function goToFeedback(){
+  typeLCD('one more thing...', 'status');
+  showPanel('panel-feedback');
+  setHelper('tap good or bad');
+}
+
+function pickFeedback(kind){
+  state.feedback = kind;
+  document.getElementById('chipGood').classList.toggle('selected', kind === 'good');
+  document.getElementById('chipBad').classList.toggle('selected', kind === 'bad');
+}
+
+function submitFeedback(){
+  if(!state.feedback){
+    typeLCD('pick good or bad first', 'error');
+    return;
+  }
+  typeLCD('your feedback is, ' + state.feedback + ', ok we will try to improve it.', 'thank you');
+  showPanel('panel-thanks');
+  setHelper('thanks for using shravan calculator');
+}
+
+function restart(){
+  document.getElementById('nameInput').value = '';
+  document.getElementById('numA').value = '';
+  document.getElementById('numB').value = '';
+  state = { name:"", a:0, b:0, feedback:null };
+  document.getElementById('chipGood').classList.remove('selected');
+  document.getElementById('chipBad').classList.remove('selected');
+  typeLCD('===== shravan calculator =====', 'status');
+  setTimeout(() => typeLCD('enter your name to begin', 'prompt'), 1000);
+  showPanel('panel-name');
+  setHelper('press enter to continue');
+}
+</script>
+
+</body>
+</html>
